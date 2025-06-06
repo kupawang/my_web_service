@@ -2,20 +2,81 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
-  <title>나의 웹 서비스</title>
+  <title>텍스트 합치기 & 복사</title>
   <style>
     body {
-      background-color: #f5f5f5;
       font-family: Arial, sans-serif;
-      padding: 20px;
+      margin: 20px;
+      max-width: 800px;
     }
-    h1 {
-      color: #333;
+    .container {
+      display: flex;
+      gap: 10px;
+      align-items: stretch;
+    }
+    .inputs {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .inputs textarea {
+      width: 100%;
+      height: 200px; /* 10줄 정도 */
+      font-size: 16px;
+      resize: vertical;
+    }
+    .result {
+      flex: 1;
+    }
+    .result textarea {
+      width: 100%;
+      height: 100%;
+      min-height: 620px; /* 입력칸3개 합친 높이 */
+      font-size: 16px;
+      resize: vertical;
+    }
+    button {
+      margin-top: 10px;
+      padding: 10px 20px;
+      font-size: 16px;
+      cursor: pointer;
     }
   </style>
 </head>
 <body>
-  <h1>안녕하세요, Live Server!</h1>
-  <p>VSCode Live Server에서 실시간 미리보기를 테스트해봅시다.</p>
+  <h1>텍스트 합치기 & 복사</h1>
+
+  <div class="container">
+    <div class="inputs">
+      <textarea id="input1" placeholder="첫 번째 입력"></textarea>
+      <textarea id="input2" placeholder="두 번째 입력"></textarea>
+      <textarea id="input3" placeholder="세 번째 입력"></textarea>
+    </div>
+    <div class="result">
+      <textarea id="result" readonly placeholder="여기에 결과가 표시됩니다."></textarea>
+    </div>
+  </div>
+
+  <button onclick="combineAndCopy()">합치고 복사하기</button>
+
+  <script>
+    function combineAndCopy() {
+      const input1 = document.getElementById('input1').value;
+      const input2 = document.getElementById('input2').value;
+      const input3 = document.getElementById('input3').value;
+
+      // 각 입력값을 단락으로 구분 (한 줄 띄우기)
+      const combined = input1 + '\n\n' + input2 + '\n\n' + input3;
+      const resultArea = document.getElementById('result');
+      resultArea.value = combined;
+
+      // 복사 기능
+      resultArea.select();
+      document.execCommand('copy');
+
+      alert('텍스트가 클립보드에 복사되었습니다!');
+    }
+  </script>
 </body>
 </html>
