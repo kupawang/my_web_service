@@ -2,26 +2,27 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
-  <title>동적 버튼 예제 (Google Sheets 연동)</title>
+  <title>메모어 프로젝트</title>
   <style>
+    /* 스타일은 이전과 동일 */
     body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif; padding: 20px; background-color: #f4f7f6; color: #333; }
     .container { display: flex; flex-wrap: wrap; gap: 20px; }
     .inputs, .result-area { flex: 1; min-width: 300px; display: flex; flex-direction: column; gap: 10px; background-color: #fff; padding: 15px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
     textarea {
-      height: 150px; /* 높이 약간 줄임 */
+      height: 150px;
       font-size: 14px;
       resize: vertical;
       padding: 10px;
       border: 1px solid #ddd;
       border-radius: 4px;
-      box-sizing: border-box; /* 패딩과 보더가 너비/높이에 포함되도록 */
+      box-sizing: border-box;
     }
     textarea:focus {
       border-color: #007bff;
       outline: none;
       box-shadow: 0 0 0 0.2rem rgba(0,123,255,.25);
     }
-    .button-panel { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; } /* flex-wrap 추가 */
+    .button-panel { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
     .button-panel button {
       padding: 8px 12px;
       font-size: 14px;
@@ -37,7 +38,7 @@
     }
     .combine-btn {
       margin-top: 20px;
-      padding: 12px 24px; /* 패딩 증가 */
+      padding: 12px 24px;
       font-size: 16px;
       cursor: pointer;
       background-color: #28a745;
@@ -45,42 +46,42 @@
       border: none;
       border-radius: 4px;
       transition: background-color 0.2s ease-in-out;
-      width: 100%; /* 버튼 너비 조정 */
+      width: 100%;
       box-sizing: border-box;
     }
     .combine-btn:hover {
       background-color: #1e7e34;
     }
     pre#debug {
-      background: #e9ecef; /* 배경색 변경 */
-      padding: 15px; /* 패딩 증가 */
+      background: #e9ecef;
+      padding: 15px;
       margin-bottom: 20px;
-      font-size: 13px; /* 폰트 크기 약간 증가 */
+      font-size: 13px;
       border-radius: 4px;
-      word-break: break-all; /* 긴 문자열 줄바꿈 */
-      white-space: pre-wrap; /* 자동 줄바꿈 */
-      max-height: 200px;
+      word-break: break-all;
+      white-space: pre-wrap;
+      max-height: 100px;
       overflow-y: auto;
     }
     h2 { color: #0056b3; }
   </style>
 </head>
 <body>
-  <h2>시트 연동 버튼 템플릿</h2>
+  <h2>구글 시트 템플릿 연동 프롬프트 딸깍 작성기</h2>
 
   <pre id="debug">데이터 로딩 중...</pre>
 
   <div class="container">
     <div class="inputs">
-      <label for="input1">입력 1 (예: 문제 상황)</label>
+      <label for="input1">입력 1</label>
       <textarea id="input1" placeholder="첫 번째 내용을 입력하세요."></textarea>
-      <label for="input2">입력 2 (예: 요청 사항)</label>
+      <label for="input2">입력 2</label>
       <textarea id="input2" placeholder="두 번째 내용을 입력하세요."></textarea>
-      <label for="input3">입력 3 (예: 추가 정보)</label>
+      <label for="input3">입력 3</label>
       <textarea id="input3" placeholder="세 번째 내용을 입력하세요."></textarea>
     </div>
 
-    <div class="result-area"> <!-- 클래스명 result -> result-area로 변경 (더 명확하게) -->
+    <div class="result-area">
       <label for="result">결과</label>
       <textarea id="result" readonly placeholder="합쳐진 결과가 여기에 표시됩니다."></textarea>
       <p><strong>템플릿 버튼:</strong></p>
@@ -93,71 +94,145 @@
   <button class="combine-btn" onclick="combineAndCopy()">선택된 내용으로 합치고 복사하기</button>
 
   <script>
-    // Google Apps Script 웹 앱 URL
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwnYH5_n4c5XSEGFIa3ijYKciK2aJRcAjZBm8MjFGjU6G_-cZ0Snj9S36xDKpCFgzbWKw/exec"; // 제공해주신 URL로 변경
+    // Google Sheets "웹에 게시" HTML 페이지 URL
+    const HTML_PUBLISH_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTQlo0wDt7MjiQ8ZSNMuyVaJ6uWUvn2WimFIWqvv64E6Rc-_yf59Imy7W9GdFCYLktrbas9-0iPDYl_/pubhtml";
+
+    function parsePublishedHTMLTable(htmlText) {
+      console.log("Raw HTML received by parser (first 500 chars):", htmlText.substring(0, 500)); // 디버깅용
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(htmlText, "text/html");
+      const table = doc.querySelector("table.waffle");
+
+      if (!table) {
+        console.error("게시된 HTML에서 '.waffle' 클래스를 가진 테이블을 찾을 수 없습니다.");
+        return [];
+      }
+      console.log("Found table.waffle element."); // 디버깅용
+
+      const jsonData = [];
+      let headers = [];
+
+      const tbody = table.querySelector("tbody");
+      if (!tbody) {
+        console.error("테이블에서 <tbody>를 찾을 수 없습니다.");
+        return [];
+      }
+      console.log("Found tbody element."); // 디버깅용
+
+      const rowsInTbody = Array.from(tbody.querySelectorAll("tr"));
+      console.log("Number of rows found in tbody:", rowsInTbody.length); // 디버깅용
+
+      if (rowsInTbody.length === 0) {
+        console.error("<tbody> 안에 행(tr)이 없습니다.");
+        return [];
+      }
+
+      // <tbody>의 첫 번째 행에서 헤더를 추출한다고 가정합니다.
+      const headerRowCandidate = rowsInTbody[0];
+      // 이 행의 <td> 요소들을 헤더로 사용합니다.
+      const headerCells = Array.from(headerRowCandidate.querySelectorAll("td"));
+      if (headerCells.length > 0) {
+          headers = headerCells.map(cell => (cell.textContent || '').trim());
+          console.log("Parsed Headers from first tbody row's <td> elements:", headers); // 디버깅용
+      } else {
+          console.error("<tbody> 첫 번째 행에서 헤더 셀(td)을 찾을 수 없습니다.");
+          // 대체: 첫 번째 행의 th(행번호 제외)도 헤더로 시도
+          const thHeaderCells = Array.from(headerRowCandidate.querySelectorAll("th:not(.row-headers-background)")); // 행번호 th 제외
+          if (thHeaderCells.length > 0) {
+            headers = thHeaderCells.map(cell => (cell.textContent || '').trim());
+            console.log("Parsed Headers from first tbody row's <th> elements (excluding row header):", headers);
+          } else {
+            console.error("<tbody> 첫 번째 행에서 유효한 헤더 셀(th 또는 td)을 찾을 수 없습니다.");
+            return [];
+          }
+      }
+
+      if (headers.length === 0) {
+          console.error("테이블 헤더를 파싱할 수 없습니다.");
+          return [];
+      }
+
+      // <tbody>의 두 번째 행부터 실제 데이터로 처리합니다.
+      for (let i = 1; i < rowsInTbody.length; i++) {
+        const dataRow = rowsInTbody[i];
+        // 이 행의 <td> 요소들을 데이터로 사용합니다.
+        const dataCells = Array.from(dataRow.querySelectorAll("td"));
+        console.log(`Data Row index ${i} (tbody row ${i+1}) - Cell count: ${dataCells.length}, Cell contents: ${dataCells.map(c => c.textContent.trim())}`); // 디버깅용
+
+        if (dataCells.length === headers.length) {
+          const entry = {};
+          let isEmptyRow = true;
+          for (let j = 0; j < headers.length; j++) {
+            const cellValue = (dataCells[j].textContent || '').trim();
+            entry[headers[j]] = cellValue;
+            if (cellValue !== '') {
+              isEmptyRow = false;
+            }
+          }
+          if (!isEmptyRow) {
+            jsonData.push(entry);
+          } else {
+            console.log(`Data Row index ${i} is empty and will be skipped.`); // 디버깅용
+          }
+        } else if (dataCells.length > 0) {
+          console.warn(`Data Row index ${i} has ${dataCells.length} data cells, but header count is ${headers.length}. Skipping this row.`); // 디버깅용
+        }
+      }
+      console.log("Final jsonData:", jsonData); // 디버깅용
+      return jsonData;
+    }
 
     async function fetchSheetData() {
       const debugElement = document.getElementById("debug");
-      debugElement.textContent = "Google Sheets에서 데이터 로딩 중...";
+      debugElement.textContent = "Google Sheets에서 HTML 데이터 로딩 중...";
+
+      if (HTML_PUBLISH_URL === "여기에_웹에_게시한_HTML_URL_입력" || !HTML_PUBLISH_URL || (typeof HTML_PUBLISH_URL === 'string' && !HTML_PUBLISH_URL.trim()) ) {
+          debugElement.textContent = "오류: HTML_PUBLISH_URL이 올바르게 설정되지 않았습니다. 스크립트 상단의 URL을 확인해주세요.";
+          console.error("HTML_PUBLISH_URL is not set correctly. Please check the URL at the top of the script.");
+          document.getElementById("buttonPanel").innerHTML = '<p style="color: red;">HTML URL이 설정되지 않아 템플릿을 불러올 수 없습니다.</p>';
+          return;
+      }
+
       try {
-        // fetch API를 사용하여 Apps Script에서 직접 JSON 데이터 가져오기
-        // Apps Script 웹앱 배포 시 "액세스 권한이 있는 사용자"가 "모든 사용자"여야 함
-        const response = await fetch(SCRIPT_URL);
+        const response = await fetch(HTML_PUBLISH_URL);
 
         if (!response.ok) {
-          // HTTP 에러 상태 (404, 500 등) 처리
-          throw new Error(`HTTP error! status: ${response.status}`);
+          throw new Error(`HTTP error! status: ${response.status} - ${response.statusText}`);
         }
 
-        const data = await response.json(); // 응답을 JSON으로 파싱
+        const htmlText = await response.text();
+        const jsonData = parsePublishedHTMLTable(htmlText);
 
-        if (data.error) { // Apps Script에서 자체적으로 에러를 반환한 경우
-            throw new Error(`스크립트 오류: ${data.message}`);
-        }
+        debugElement.textContent = "데이터 로딩 완료. 파싱된 JSON 데이터:\n" + JSON.stringify(jsonData, null, 2);
 
-        console.log("가져온 데이터:", data);
-        debugElement.textContent = "데이터 로딩 완료. JSON 데이터:\n" + JSON.stringify(data, null, 2);
-
-        createButtons(data);
+        createButtons(jsonData);
       } catch (err) {
-        console.error("데이터 fetch 중 오류:", err);
+        console.error("데이터 fetch 또는 파싱 중 오류:", err);
         debugElement.textContent = "데이터 로딩 중 오류 발생: " + err.message + "\n\n개발자 도구(F12) 콘솔에서 자세한 내용을 확인하세요.";
-        // 오류 발생 시 버튼 패널에 메시지 표시
         const panel = document.getElementById("buttonPanel");
-        panel.innerHTML = '<p style="color: red;">템플릿을 불러오는데 실패했습니다. 시트 설정이나 네트워크를 확인해주세요.</p>';
+        panel.innerHTML = '<p style="color: red;">템플릿을 불러오는데 실패했습니다. 시트가 웹에 올바르게 게시되었는지, URL이 정확한지, 또는 시트 내용/구조를 확인해주세요.</p>';
       }
     }
 
     function createButtons(data) {
       const panel = document.getElementById("buttonPanel");
-      panel.innerHTML = ''; // 기존 버튼 제거
+      panel.innerHTML = '';
 
       if (!data || data.length === 0) {
         panel.innerHTML = '<p>표시할 템플릿 데이터가 없습니다. 시트를 확인해주세요.</p>';
         return;
       }
 
-      // Google Sheet의 헤더 이름을 기준으로 값을 가져오도록 수정
-      // 예: 시트에 'buttonLabel', 'text1', 'text2', 'text3' 같은 헤더가 있다고 가정
       data.forEach(row => {
         const btn = document.createElement("button");
-        // 시트의 'buttonLabel' (또는 유사한) 컬럼을 버튼 텍스트로 사용
-        // 만약 시트 헤더가 'label'이라면 row.label 그대로 사용
-        const buttonText = row.label || row.buttonLabel || row.템플릿명 || "이름없는 템플릿"; // 여러 가능성 있는 헤더 이름 시도
+        const buttonText = row.제목 || "제목 없음";
         btn.textContent = buttonText;
 
         btn.onclick = () => {
-          // 시트의 컬럼명 (헤더)을 정확히 사용해야 합니다.
-          // Apps Script에서 JSON 만들 때 사용한 키와 동일해야 합니다.
-          // 예를 들어, 시트 헤더가 'input1_content', 'input2_content', 'input3_content' 라면
-          // fillInputs(row.input1_content, row.input2_content, row.input3_content); 와 같이 호출
-          // 현재 Apps Script 코드는 시트의 첫 행을 그대로 헤더로 사용하므로,
-          // 시트의 헤더명이 'input1', 'input2', 'input3'이라고 가정합니다.
-          // 만약 다르다면 아래 row. 다음의 속성명을 시트 헤더명과 일치시켜야 합니다.
           fillInputs(
-            row.input1 || '', // 시트에 'input1' 컬럼이 있으면 해당 값, 없으면 빈 문자열
-            row.input2 || '', // 시트에 'input2' 컬럼이 있으면 해당 값, 없으면 빈 문자열
-            row.input3 || ''  // 시트에 'input3' 컬럼이 있으면 해당 값, 없으면 빈 문자열
+            row.입력1 || '',
+            row.입력2 || '',
+            row.입력3 || ''
           );
         };
         panel.appendChild(btn);
@@ -174,30 +249,25 @@
       const input1 = document.getElementById("input1").value;
       const input2 = document.getElementById("input2").value;
       const input3 = document.getElementById("input3").value;
-
       const resultText = `${input1}\n\n${input2}\n\n${input3}`;
       const resultArea = document.getElementById("result");
       resultArea.value = resultText;
-
       if (resultText.trim() === "") {
         alert("복사할 내용이 없습니다.");
         return;
       }
-
-      resultArea.select(); // 텍스트 선택
-      resultArea.setSelectionRange(0, 99999); // 모바일 브라우저 호환성을 위해
-
+      resultArea.select();
+      resultArea.setSelectionRange(0, 99999);
       try {
-        // 최신 Clipboard API 사용 시도 (HTTPS 환경에서만 주로 동작)
         if (navigator.clipboard && navigator.clipboard.writeText) {
           navigator.clipboard.writeText(resultText).then(() => {
             alert("결과가 클립보드에 복사되었습니다!");
           }).catch(err => {
             console.warn("Clipboard API 복사 실패, execCommand 사용 시도:", err);
-            legacyCopy(resultArea); // 폴백
+            legacyCopy(resultArea);
           });
         } else {
-          legacyCopy(resultArea); // 구형 브라우저 또는 HTTP 환경
+          legacyCopy(resultArea);
         }
       } catch (err) {
         console.error("복사 중 오류:", err);
@@ -206,13 +276,11 @@
     }
 
     function legacyCopy(textareaElement) {
-      // document.execCommand는 오래된 방식이며, 일부 브라우저에서 지원 중단될 수 있음
       textareaElement.select();
       document.execCommand("copy");
       alert("결과가 클립보드에 복사되었습니다! (Legacy)");
     }
 
-    // 페이지 로딩 완료 후 데이터 가져오기 실행
     document.addEventListener('DOMContentLoaded', fetchSheetData);
   </script>
 </body>
