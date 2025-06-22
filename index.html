@@ -2,9 +2,8 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
-  <title>메모어 프로젝트</title>
+  <title>쿠파왕 프로젝트</title>
   <style>
-    /* 스타일은 이전과 동일 */
     body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif; padding: 20px; background-color: #f4f7f6; color: #333; }
     .container { display: flex; flex-wrap: wrap; gap: 20px; }
     .inputs, .result-area { flex: 1; min-width: 300px; display: flex; flex-direction: column; gap: 10px; background-color: #fff; padding: 15px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
@@ -16,6 +15,7 @@
       border: 1px solid #ddd;
       border-radius: 4px;
       box-sizing: border-box;
+      white-space: pre-wrap;
     }
     textarea:focus {
       border-color: #007bff;
@@ -23,7 +23,7 @@
       box-shadow: 0 0 0 0.2rem rgba(0,123,255,.25);
     }
     .button-panel { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
-    .button-panel button {
+    .button-panel button, .action-button {
       padding: 8px 12px;
       font-size: 14px;
       cursor: pointer;
@@ -33,7 +33,7 @@
       border-radius: 4px;
       transition: background-color 0.2s ease-in-out;
     }
-    .button-panel button:hover {
+    .button-panel button:hover, .action-button:hover {
       background-color: #0056b3;
     }
     .combine-btn {
@@ -54,9 +54,9 @@
     }
     pre#debug {
       background: #e9ecef;
-      padding: 15px;
-      margin-bottom: 20px;
-      font-size: 13px;
+      padding: 10px;
+      margin-bottom: 10px;
+      font-size: 12px;
       border-radius: 4px;
       word-break: break-all;
       white-space: pre-wrap;
@@ -64,12 +64,107 @@
       overflow-y: auto;
     }
     h2 { color: #0056b3; }
+
+    #saveCurrentContentBtn {
+      background-color: #17a2b8;
+      margin-bottom: 10px;
+    }
+    #saveCurrentContentBtn:hover {
+      background-color: #117a8b;
+    }
+
+    .temp-save-item-container {
+      display: inline-flex;
+      align-items: center;
+      background-color: #f0f0f0;
+      border-radius: 4px;
+      padding: 4px;
+    }
+    .temp-save-item-container button {
+      border: none;
+      border-radius: 3px;
+      padding: 5px 8px;
+      font-size: 13px;
+      cursor: pointer;
+      transition: background-color 0.2s ease-in-out;
+      color: white;
+    }
+    .temp-save-load-btn {
+      background-color: #6c757d;
+      margin-right: 4px;
+    }
+    .temp-save-load-btn:hover {
+      background-color: #5a6268;
+    }
+    .temp-save-delete-btn {
+      background-color: #e74c3c;
+      padding: 5px 7px;
+      line-height: 1;
+    }
+    .temp-save-delete-btn:hover {
+      background-color: #c0392b;
+    }
+    .file-input-area {
+        margin-bottom: 5px; 
+        padding: 10px;
+        background-color: #e9ecef;
+        border-radius: 4px;
+    }
+    .file-input-area label {
+        margin-right: 10px;
+        font-weight: bold;
+    }
+    .file-input-area input[type="file"] {
+        padding: 5px;
+        border-radius: 3px;
+        border: 1px solid #ccc;
+    }
+    .sample-download-link {
+        font-size: 0.9em;
+        margin-top: 0px; 
+        margin-bottom: 15px;
+        padding-left: 10px; 
+        color: #555;
+    }
+    .sample-download-link a {
+        color: #007bff;
+        text-decoration: none;
+        font-weight: bold;
+    }
+    .sample-download-link a:hover {
+        text-decoration: underline;
+    }
+    footer {
+        text-align: center;
+        margin-top: 40px;
+        padding-top: 20px;
+        border-top: 1px solid #eee;
+        font-size: 0.85em;
+        color: #777;
+    }
+    footer p {
+        margin-bottom: 5px;
+    }
   </style>
+  <!-- SheetJS 라이브러리 CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
 <body>
-  <h2>구글 시트 템플릿 연동 프롬프트 딸깍 작성기</h2>
+  <h2>복잡한 프롬프트 딸깍 생성기</h2>
 
-  <pre id="debug">데이터 로딩 중...</pre>
+  <pre id="debug">애플리케이션 초기화 중...</pre>
+
+  <!-- 로컬 엑셀 파일 선택기 -->
+  <div class="file-input-area">
+    <label for="excelFile">로컬 템플릿 파일 선택 (Excel): </label>
+    <input type="file" id="excelFile" accept=".xlsx, .xls">
+  </div>
+
+  <!-- 샘플 파일 다운로드 링크 -->
+  <p class="sample-download-link">
+    <em>템플릿 파일이 없으신가요? <a href="https://raw.githubusercontent.com/kupawang/my_web_service/main/sample.xlsx" download="sample_template.xlsx">샘플 엑셀 파일 (sample.xlsx)</a>을 다운로드하여 사용해보세요. (첫 행: 제목, 입력1, 입력2, 입력3)</em>
+  </p>00
+
 
   <div class="container">
     <div class="inputs">
@@ -84,167 +179,248 @@
     <div class="result-area">
       <label for="result">결과</label>
       <textarea id="result" readonly placeholder="합쳐진 결과가 여기에 표시됩니다."></textarea>
-      <p><strong>템플릿 버튼:</strong></p>
+      
+      <p><strong>템플릿 버튼:</strong> (Google Sheets 또는 로컬 파일에서 로드됨)</p>
       <div class="button-panel" id="buttonPanel">
         <!-- 버튼이 동적으로 여기에 추가됩니다. -->
+      </div>
+
+      <div style="margin-top: 20px;">
+          <p><strong>임시 저장:</strong></p>
+          <button id="saveCurrentContentBtn" class="action-button">현재 내용 임시 저장</button>
+          <div class="button-panel" id="tempSaveArea">
+            <!-- 임시 저장된 버튼들이 여기에 추가됩니다. -->
+          </div>
       </div>
     </div>
   </div>
 
   <button class="combine-btn" onclick="combineAndCopy()">선택된 내용으로 합치고 복사하기</button>
 
-  <script>
-    // Google Sheets "웹에 게시" HTML 페이지 URL
-    const HTML_PUBLISH_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTQlo0wDt7MjiQ8ZSNMuyVaJ6uWUvn2WimFIWqvv64E6Rc-_yf59Imy7W9GdFCYLktrbas9-0iPDYl_/pubhtml";
+  <footer>
+    <p>
+      © 2024 kupawang 🦎
+      <br>
+      Instagram: @kupawang | Email: kupawang@gmail.com
+      <br>
+      Since 2024.06.22
+    </p>
+    <p style="font-size: 0.9em; margin-top: 5px;">
+      <em>버그나 제안사항이 있으시면 kupawang@gmail.com 으로 알려주세요.</em>
+    </p>
+  </footer>
 
+  <script>
+    // Google Sheets "웹에 게시" HTML 페이지 URL 
+    const HTML_PUBLISH_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTQlo0wDt7MjiQ8ZSNMuyVaJ6uWUvn2WimFIWqvv64E6Rc-_yf59Imy7W9GdFCYLktrbas9-0iPDYl_/pubhtml"; 
+
+    const debugElement = document.getElementById("debug");
+    const buttonPanel = document.getElementById("buttonPanel");
+    const excelFileInput = document.getElementById('excelFile');
+    const saveCurrentContentBtn = document.getElementById("saveCurrentContentBtn");
+    const tempSaveArea = document.getElementById("tempSaveArea");
+
+    // --- 1. Google Sheets HTML 파싱 함수 ---
     function parsePublishedHTMLTable(htmlText) {
-      console.log("Raw HTML received by parser (first 500 chars):", htmlText.substring(0, 500)); // 디버깅용
       const parser = new DOMParser();
       const doc = parser.parseFromString(htmlText, "text/html");
       const table = doc.querySelector("table.waffle");
-
-      if (!table) {
-        console.error("게시된 HTML에서 '.waffle' 클래스를 가진 테이블을 찾을 수 없습니다.");
-        return [];
-      }
-      console.log("Found table.waffle element."); // 디버깅용
-
+      if (!table) { console.error("게시된 HTML에서 '.waffle' 클래스를 가진 테이블을 찾을 수 없습니다."); return []; }
       const jsonData = [];
       let headers = [];
-
       const tbody = table.querySelector("tbody");
-      if (!tbody) {
-        console.error("테이블에서 <tbody>를 찾을 수 없습니다.");
-        return [];
-      }
-      console.log("Found tbody element."); // 디버깅용
-
+      if (!tbody) { console.error("테이블에서 <tbody>를 찾을 수 없습니다."); return []; }
       const rowsInTbody = Array.from(tbody.querySelectorAll("tr"));
-      console.log("Number of rows found in tbody:", rowsInTbody.length); // 디버깅용
-
-      if (rowsInTbody.length === 0) {
-        console.error("<tbody> 안에 행(tr)이 없습니다.");
-        return [];
-      }
-
-      // <tbody>의 첫 번째 행에서 헤더를 추출한다고 가정합니다.
+      if (rowsInTbody.length === 0) { console.error("<tbody> 안에 행(tr)이 없습니다."); return []; }
+      
       const headerRowCandidate = rowsInTbody[0];
-      // 이 행의 <td> 요소들을 헤더로 사용합니다.
-      const headerCells = Array.from(headerRowCandidate.querySelectorAll("td"));
+      let headerCells = Array.from(headerRowCandidate.querySelectorAll("td"));
       if (headerCells.length > 0) {
           headers = headerCells.map(cell => (cell.textContent || '').trim());
-          console.log("Parsed Headers from first tbody row's <td> elements:", headers); // 디버깅용
       } else {
-          console.error("<tbody> 첫 번째 행에서 헤더 셀(td)을 찾을 수 없습니다.");
-          // 대체: 첫 번째 행의 th(행번호 제외)도 헤더로 시도
-          const thHeaderCells = Array.from(headerRowCandidate.querySelectorAll("th:not(.row-headers-background)")); // 행번호 th 제외
+          const thHeaderCells = Array.from(headerRowCandidate.querySelectorAll("th:not(.row-headers-background)"));
           if (thHeaderCells.length > 0) {
             headers = thHeaderCells.map(cell => (cell.textContent || '').trim());
-            console.log("Parsed Headers from first tbody row's <th> elements (excluding row header):", headers);
           } else {
-            console.error("<tbody> 첫 번째 행에서 유효한 헤더 셀(th 또는 td)을 찾을 수 없습니다.");
-            return [];
+            console.error("<tbody> 첫 번째 행에서 유효한 헤더 셀(th 또는 td)을 찾을 수 없습니다."); return [];
           }
       }
+      if (headers.length === 0) { console.error("테이블 헤더를 파싱할 수 없습니다."); return []; }
 
-      if (headers.length === 0) {
-          console.error("테이블 헤더를 파싱할 수 없습니다.");
-          return [];
-      }
-
-      // <tbody>의 두 번째 행부터 실제 데이터로 처리합니다.
       for (let i = 1; i < rowsInTbody.length; i++) {
         const dataRow = rowsInTbody[i];
-        // 이 행의 <td> 요소들을 데이터로 사용합니다.
         const dataCells = Array.from(dataRow.querySelectorAll("td"));
-        console.log(`Data Row index ${i} (tbody row ${i+1}) - Cell count: ${dataCells.length}, Cell contents: ${dataCells.map(c => c.textContent.trim())}`); // 디버깅용
-
         if (dataCells.length === headers.length) {
           const entry = {};
           let isEmptyRow = true;
           for (let j = 0; j < headers.length; j++) {
-            const cellValue = (dataCells[j].textContent || '').trim();
-            entry[headers[j]] = cellValue;
-            if (cellValue !== '') {
-              isEmptyRow = false;
-            }
+            let cellHTML = dataCells[j].innerHTML || '';
+            let cellTextWithNewlines = cellHTML.replace(/<br\s*\/?>/gi, '\n');
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = cellTextWithNewlines;
+            let finalCellValue = (tempDiv.textContent || tempDiv.innerText || '').trim();
+            entry[headers[j]] = finalCellValue;
+            if (finalCellValue !== '') isEmptyRow = false;
           }
-          if (!isEmptyRow) {
-            jsonData.push(entry);
-          } else {
-            console.log(`Data Row index ${i} is empty and will be skipped.`); // 디버깅용
-          }
-        } else if (dataCells.length > 0) {
-          console.warn(`Data Row index ${i} has ${dataCells.length} data cells, but header count is ${headers.length}. Skipping this row.`); // 디버깅용
+          if (!isEmptyRow) jsonData.push(entry);
         }
       }
-      console.log("Final jsonData:", jsonData); // 디버깅용
       return jsonData;
     }
 
+    // --- 2. Google Sheets 데이터 가져오기 함수 ---
     async function fetchSheetData() {
-      const debugElement = document.getElementById("debug");
-      debugElement.textContent = "Google Sheets에서 HTML 데이터 로딩 중...";
-
-      if (HTML_PUBLISH_URL === "여기에_웹에_게시한_HTML_URL_입력" || !HTML_PUBLISH_URL || (typeof HTML_PUBLISH_URL === 'string' && !HTML_PUBLISH_URL.trim()) ) {
-          debugElement.textContent = "오류: HTML_PUBLISH_URL이 올바르게 설정되지 않았습니다. 스크립트 상단의 URL을 확인해주세요.";
-          console.error("HTML_PUBLISH_URL is not set correctly. Please check the URL at the top of the script.");
-          document.getElementById("buttonPanel").innerHTML = '<p style="color: red;">HTML URL이 설정되지 않아 템플릿을 불러올 수 없습니다.</p>';
-          return;
+      if (!HTML_PUBLISH_URL || HTML_PUBLISH_URL.trim() === "" || HTML_PUBLISH_URL === "여기에_웹에_게시한_HTML_URL_입력") {
+          debugElement.textContent = "Google Sheets URL이 올바르게 설정되지 않았습니다. 로컬 파일에서 템플릿을 로드하거나 스크립트에서 URL을 확인해주세요.";
+          // buttonPanel.innerHTML = ''; // 버튼 패널을 비우는 것은 선택사항
+          return; 
       }
 
+      debugElement.textContent = "Google Sheets에서 HTML 데이터 로딩 중...";
       try {
         const response = await fetch(HTML_PUBLISH_URL);
-
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status} - ${response.statusText}`);
         }
-
         const htmlText = await response.text();
         const jsonData = parsePublishedHTMLTable(htmlText);
-
-        debugElement.textContent = "데이터 로딩 완료. 파싱된 JSON 데이터:\n" + JSON.stringify(jsonData, null, 2);
-
-        createButtons(jsonData);
+        // debugElement.textContent = "Google Sheets 데이터 로딩 완료."; // 메시지 간소화
+        createButtons(jsonData, "Google Sheets");
       } catch (err) {
-        console.error("데이터 fetch 또는 파싱 중 오류:", err);
-        debugElement.textContent = "데이터 로딩 중 오류 발생: " + err.message + "\n\n개발자 도구(F12) 콘솔에서 자세한 내용을 확인하세요.";
-        const panel = document.getElementById("buttonPanel");
-        panel.innerHTML = '<p style="color: red;">템플릿을 불러오는데 실패했습니다. 시트가 웹에 올바르게 게시되었는지, URL이 정확한지, 또는 시트 내용/구조를 확인해주세요.</p>';
+        console.error("Google Sheets 데이터 fetch 또는 파싱 중 오류:", err);
+        debugElement.textContent = "Google Sheets 데이터 로딩 중 오류 발생: " + err.message + ". 로컬 파일을 사용해보세요.";
+        // buttonPanel.innerHTML = '<p style="color: red;">Google Sheets 템플릿 로딩 실패. 로컬 파일을 사용하거나 URL을 확인해주세요.</p>'; // 필요시 주석 해제
       }
     }
 
-    function createButtons(data) {
-      const panel = document.getElementById("buttonPanel");
-      panel.innerHTML = '';
+    // --- 3. 로컬 엑셀/CSV 파일 처리 함수 ---
+    function handleExcelFile(event) {
+        const file = event.target.files[0];
+        if (!file) {
+            // debugElement.textContent = "파일이 선택되지 않았습니다."; // 사용자가 취소한 경우 메시지 불필요
+            return;
+        }
 
+        debugElement.textContent = `'${file.name}' 파일 로딩 중...`;
+        const reader = new FileReader();
+
+        reader.onload = function(e) {
+            try {
+                const data = e.target.result;
+                const workbook = XLSX.read(data, {type: 'array'});
+                const firstSheetName = workbook.SheetNames[0];
+                if (!firstSheetName) throw new Error("엑셀 파일에 시트가 없습니다.");
+                
+                const worksheet = workbook.Sheets[firstSheetName];
+                const jsonData = XLSX.utils.sheet_to_json(worksheet);
+
+                // debugElement.textContent = `로컬 파일 '${file.name}' 데이터 로딩 및 파싱 완료.`; // 메시지 간소화
+                createButtons(jsonData, `로컬 파일 (${file.name})`);
+            } catch (err) {
+                console.error("로컬 엑셀 파일 처리 중 오류:", err);
+                debugElement.textContent = "로컬 엑셀 파일 처리 중 오류 발생: " + err.message;
+                buttonPanel.innerHTML = '<p style="color: red;">로컬 템플릿 파일을 불러오는데 실패했습니다. 파일 형식이 올바른지, 내용/구조를 확인해주세요.</p>';
+            }
+        };
+        reader.onerror = function(e) {
+            console.error("파일 읽기 오류:", e);
+            debugElement.textContent = "파일을 읽는 중 오류가 발생했습니다.";
+        };
+        reader.readAsArrayBuffer(file);
+    }
+
+    // --- 4. 템플릿 버튼 생성 함수 ---
+    function createButtons(data, sourceType = "데이터") {
+      buttonPanel.innerHTML = ''; 
       if (!data || data.length === 0) {
-        panel.innerHTML = '<p>표시할 템플릿 데이터가 없습니다. 시트를 확인해주세요.</p>';
+        buttonPanel.innerHTML = `<p>표시할 템플릿 데이터가 없습니다. (${sourceType} 확인)</p>`;
+        debugElement.textContent = `${sourceType}에서 템플릿 데이터를 찾을 수 없습니다.`;
         return;
       }
 
       data.forEach(row => {
         const btn = document.createElement("button");
-        const buttonText = row.제목 || "제목 없음";
+        const buttonText = row.제목 || row.Title || row.title || "제목 없음";
         btn.textContent = buttonText;
 
         btn.onclick = () => {
           fillInputs(
-            row.입력1 || '',
-            row.입력2 || '',
-            row.입력3 || ''
+            row.입력1 || row.Input1 || row.input1 || '',
+            row.입력2 || row.Input2 || row.input2 || '',
+            row.입력3 || row.Input3 || row.input3 || ''
           );
         };
-        panel.appendChild(btn);
+        buttonPanel.appendChild(btn);
       });
+      debugElement.textContent = `${sourceType}에서 ${data.length}개의 템플릿 버튼을 성공적으로 로드했습니다.`;
     }
 
+    // --- 5. 입력 필드 채우기 함수 (덮어쓰기) ---
     function fillInputs(val1, val2, val3) {
       document.getElementById("input1").value = val1;
       document.getElementById("input2").value = val2;
       document.getElementById("input3").value = val3;
     }
 
+    // --- 6. 임시 저장 관련 변수 및 함수 ---
+    let tempSavedItems = [];
+    let tempSaveCounter = 1;
+    let nextItemId = 0;
+
+    function saveCurrentInputs() {
+      const val1 = document.getElementById("input1").value;
+      const val2 = document.getElementById("input2").value;
+      const val3 = document.getElementById("input3").value;
+      if (!val1.trim() && !val2.trim() && !val3.trim()) {
+        alert("임시 저장할 내용이 없습니다.");
+        return;
+      }
+      const newItem = {
+        id: nextItemId++,
+        name: `임시${tempSaveCounter++}`,
+        data: { input1: val1, input2: val2, input3: val3 }
+      };
+      tempSavedItems.push(newItem);
+      renderTempSavedItems();
+    }
+
+    function renderTempSavedItems() {
+      tempSaveArea.innerHTML = '';
+      tempSavedItems.forEach(item => {
+        const itemContainer = document.createElement('div');
+        itemContainer.classList.add('temp-save-item-container');
+
+        const loadBtn = document.createElement('button');
+        loadBtn.classList.add('temp-save-load-btn');
+        loadBtn.textContent = item.name;
+        loadBtn.onclick = () => loadSavedItem(item.id);
+
+        const deleteBtn = document.createElement('button');
+        deleteBtn.classList.add('temp-save-delete-btn');
+        deleteBtn.textContent = 'X';
+        deleteBtn.onclick = () => deleteSavedItem(item.id);
+
+        itemContainer.appendChild(loadBtn);
+        itemContainer.appendChild(deleteBtn);
+        tempSaveArea.appendChild(itemContainer);
+      });
+    }
+
+    function loadSavedItem(itemId) {
+      const itemToLoad = tempSavedItems.find(item => item.id === itemId);
+      if (itemToLoad) {
+        document.getElementById("input1").value = itemToLoad.data.input1;
+        document.getElementById("input2").value = itemToLoad.data.input2;
+        document.getElementById("input3").value = itemToLoad.data.input3;
+      }
+    }
+
+    function deleteSavedItem(itemId) {
+      tempSavedItems = tempSavedItems.filter(item => item.id !== itemId);
+      renderTempSavedItems();
+    }
+
+    // --- 7. 결과 합치고 복사하기 함수 ---
     function combineAndCopy() {
       const input1 = document.getElementById("input1").value;
       const input2 = document.getElementById("input2").value;
@@ -252,6 +428,7 @@
       const resultText = `${input1}\n\n${input2}\n\n${input3}`;
       const resultArea = document.getElementById("result");
       resultArea.value = resultText;
+
       if (resultText.trim() === "") {
         alert("복사할 내용이 없습니다.");
         return;
@@ -271,17 +448,40 @@
         }
       } catch (err) {
         console.error("복사 중 오류:", err);
-        alert("복사 중 오류가 발생했습니다. 수동으로 복사해주세요.");
+        alert("복사 중 오류가 발생했습니다. 개발자 콘솔을 확인해주세요.");
       }
     }
 
     function legacyCopy(textareaElement) {
-      textareaElement.select();
-      document.execCommand("copy");
-      alert("결과가 클립보드에 복사되었습니다! (Legacy)");
+      try {
+        textareaElement.select();
+        document.execCommand("copy");
+        alert("결과가 클립보드에 복사되었습니다! (Legacy)");
+      } catch (err) {
+        console.error("Legacy 복사 실패:", err);
+        alert("클립보드 복사에 실패했습니다. 수동으로 복사해주세요.");
+      }
     }
 
-    document.addEventListener('DOMContentLoaded', fetchSheetData);
+    // --- 8. 초기화 및 이벤트 리스너 설정 ---
+    document.addEventListener('DOMContentLoaded', () => {
+      fetchSheetData(); // Google Sheets 로드 시도
+
+      if (excelFileInput) {
+        excelFileInput.addEventListener('change', handleExcelFile);
+      }
+      if (saveCurrentContentBtn) {
+        saveCurrentContentBtn.addEventListener('click', saveCurrentInputs);
+      }
+      
+      // 초기 debug 메시지는 fetchSheetData 함수 내에서 또는 로컬 파일 로드 시 업데이트됨
+      // 만약 fetchSheetData가 즉시 실행되지 않는다면 (예: URL이 없는 경우), 초기 메시지가 유지될 수 있음
+      if (!HTML_PUBLISH_URL || HTML_PUBLISH_URL.trim() === "" || HTML_PUBLISH_URL === "여기에_웹에_게시한_HTML_URL_입력") {
+           debugElement.textContent = "Google Sheets URL이 설정되지 않았거나 유효하지 않습니다. 로컬 파일에서 템플릿을 로드해주세요.";
+      } else {
+           debugElement.textContent = "초기화 완료. Google Sheets 데이터 로딩 시도 중...";
+      }
+    });
   </script>
 </body>
 </html>
