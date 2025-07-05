@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>차량 조합 섞기 서비스</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+
+        .content {
+            padding: 40px;
+        }
+
+        .input-section {
+            background: #f8f9fa;
+            padding: 30px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+        }
+
+        .input-group {
+            margin-bottom: 25px;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: #555;
+            font-size: 1.1em;
+        }
+
+        .input-group input, .input-group textarea {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 16px;
+            transition: border-color 0.3s ease;
+        }
+
+        .input-group input:focus, .input-group textarea:focus {
+            outline: none;
+            border-color: #4facfe;
+            box-shadow: 0 0 0 3px rgba(79, 172, 254, 0.1);
+        }
+
+        .input-group textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .input-group small {
+            color: #666;
+            font-size: 0.9em;
+            margin-top: 5px;
+            display: block;
+        }
+
+        .generate-btn {
+            background: linear-gradient(135deg, #ff6b6b 0%, #ffa726 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 1.2em;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 5px 15px rgba(255, 107, 107, 0.3);
+        }
+
+        .generate-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(255, 107, 107, 0.4);
+        }
+
+        .generate-btn:active {
+            transform: translateY(0);
+        }
+
+        .results {
+            margin-top: 30px;
+        }
+
+        .rest-stop {
+            background: white;
+            border: 2px solid #e0e0e0;
+            border-radius: 15px;
+            margin-bottom: 25px;
+            overflow: hidden;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+        }
+
+        .rest-stop-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            font-size: 1.3em;
+            font-weight: bold;
+            text-align: center;
+        }
+
+        .cars-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            padding: 20px;
+        }
+
+        .car-card {
+            background: #f8f9fa;
+            border: 2px solid #e9ecef;
+            border-radius: 12px;
+            padding: 20px;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .car-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        }
+
+        .car-title {
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+        }
+
+        .car-icon {
+            margin-right: 10px;
+            font-size: 1.4em;
+        }
+
+        .driver {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 20px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            display: inline-block;
+        }
+
+        .passengers {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .passenger {
+            background: #e9ecef;
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 0.9em;
+            color: #555;
+        }
+
+        .error {
+            background: #fee;
+            color: #c33;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            border: 1px solid #fcc;
+        }
+
+        .stats {
+            background: #f0f8ff;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .stats h3 {
+            color: #4facfe;
+            margin-bottom: 10px;
+        }
+
+        @media (max-width: 768px) {
+            .content {
+                padding: 20px;
+            }
+            
+            .cars-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .header h1 {
+                font-size: 2em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚗 차량 조합 섞기 서비스</h1>
+            <p>여행 중 다양한 사람들과 함께 타세요!</p>
+        </div>
+        
+        <div class="content">
+            <div class="input-section">
+                <div class="input-group">
+                    <label for="people">참여자 명단</label>
+                    <textarea id="people" placeholder="김철수, 이영희, 박민수, 최지은, 정다현, 이민호, 김서연, 박준호, 이하은, 김도현, 정수빈, 이서준, 김예진, 박하늘, 최민성, 정예원, 이준서, 김가은, 박시우, 최서연, 정민재, 이소영"></textarea>
+                    <small>참여자 이름을 쉼표(,)로 구분해서 입력하세요</small>
+                </div>
+                
+                <div class="input-group">
+                    <label for="drivers">차주 명단</label>
+                    <textarea id="drivers" placeholder="김철수, 이영희, 박민수, 최지은, 정다현"></textarea>
+                    <small>차주 이름을 쉼표(,)로 구분해서 입력하세요 (참여자 명단에 포함된 사람들)</small>
+                </div>
+                
+                <div class="input-group">
+                    <label for="sections">구간 개수</label>
+                    <input type="number" id="sections" value="3" min="1" max="10" placeholder="3">
+                    <small>출발지에서 목적지까지의 총 구간 개수 (예: 3구간이면 출발→쉼터1→쉼터2→목적지)</small>
+                </div>
+                
+                <button class="generate-btn" onclick="generateCombinations()">
+                    🎲 차량 조합 생성하기
+                </button>
+            </div>
+            
+            <div id="results" class="results"></div>
+        </div>
+    </div>
+
+    <script>
+        function generateAllOptimalCombinations(people, drivers, carsNeeded, sections) {
+            let bestAllCombinations = null;
+            let bestScore = -Infinity;
+            
+            // 여러 번 시도해서 가장 좋은 전체 조합 찾기
+            for (let attempt = 0; attempt < 200; attempt++) {
+                const allCombinations = [];
+                const meetingTracker = createMeetingTracker(people);
+                
+                for (let section = 0; section < sections; section++) {
+                    const combination = generateDiverseCombination(people, drivers, carsNeeded, meetingTracker);
+                    allCombinations.push(combination);
+                    updateMeetingTracker(meetingTracker, combination);
+                }
+                
+                const score = calculateTotalScore(meetingTracker, people);
+                if (score > bestScore) {
+                    bestScore = score;
+                    bestAllCombinations = allCombinations;
+                }
+            }
+            
+            return bestAllCombinations;
+        }
+        
+        function createMeetingTracker(people) {
+            const tracker = {};
+            for (let i = 0; i < people.length; i++) {
+                tracker[people[i]] = {};
+                for (let j = 0; j < people.length; j++) {
+                    if (i !== j) {
+                        tracker[people[i]][people[j]] = 0;
+                    }
+                }
+            }
+            return tracker;
+        }
+        
+        function updateMeetingTracker(tracker, combination) {
+            combination.forEach(car => {
+                const allMembers = [car.driver, ...car.passengers];
+                for (let i = 0; i < allMembers.length; i++) {
+                    for (let j = i + 1; j < allMembers.length; j++) {
+                        const person1 = allMembers[i];
+                        const person2 = allMembers[j];
+                        tracker[person1][person2]++;
+                        tracker[person2][person1]++;
+                    }
+                }
+            });
+        }
+        
+        function generateDiverseCombination(people, drivers, carsNeeded, meetingTracker) {
+            let bestCombination = null;
+            let bestScore = -Infinity;
+            
+            // 여러 번 시도해서 가장 다양한 조합 찾기
+            for (let attempt = 0; attempt < 100; attempt++) {
+                const combination = generateRandomCombination(people, drivers, carsNeeded);
+                if (combination && combination.length > 0) {
+                    const score = calculateDiversityScore(combination, meetingTracker);
+                    
+                    if (score > bestScore) {
+                        bestScore = score;
+                        bestCombination = combination;
+                    }
+                }
+            }
+            
+            return bestCombination || generateBasicCombination(people, drivers, carsNeeded);
+        }
+        
+        function calculateDiversityScore(combination, meetingTracker) {
+            let score = 0;
+            
+            combination.forEach(car => {
+                const allMembers = [car.driver, ...car.passengers];
+                for (let i = 0; i < allMembers.length; i++) {
+                    for (let j = i + 1; j < allMembers.length; j++) {
+                        const person1 = allMembers[i];
+                        const person2 = allMembers[j];
+                        // 이미 많이 만난 사람들끼리 또 만나면 점수 감소
+                        const previousMeetings = meetingTracker[person1][person2] || 0;
+                        score -= previousMeetings * 50;
+                        
+                        // 처음 만나는 사람들끼리 만나면 점수 증가
+                        if (previousMeetings === 0) {
+                            score += 100;
+                        }
+                    }
+                }
+            });
+            
+            return score;
+        }
+        
+        function calculateTotalScore(meetingTracker, people) {
+            const meetings = [];
+            const neverMet = [];
+            
+            for (let i = 0; i < people.length; i++) {
+                for (let j = i + 1; j < people.length; j++) {
+                    const person1 = people[i];
+                    const person2 = people[j];
+                    const meetingCount = meetingTracker[person1][person2];
+                    meetings.push(meetingCount);
+                    
+                    if (meetingCount === 0) {
+                        neverMet.push([person1, person2]);
+                    }
+                }
+            }
+            
+            // 만남 횟수의 표준편차가 작을수록 좋은 점수
+            const mean = meetings.reduce((a, b) => a + b, 0) / meetings.length;
+            const variance = meetings.reduce((sum, meeting) => sum + Math.pow(meeting - mean, 2), 0) / meetings.length;
+            const standardDeviation = Math.sqrt(variance);
+            
+            // 표준편차가 작을수록, 한 번도 못 만난 사람이 적을수록 높은 점수
+            return 1000 / (standardDeviation + 1) - neverMet.length * 10;
+        }
+        
+        function analyzeCombinations(allCombinations, people) {
+            const meetingTracker = createMeetingTracker(people);
+            
+            allCombinations.forEach(combination => {
+                updateMeetingTracker(meetingTracker, combination);
+            });
+            
+            const meetings = [];
+            let neverMetCount = 0;
+            let maxMeetings = 0;
+            
+            for (let i = 0; i < people.length; i++) {
+                for (let j = i + 1; j < people.length; j++) {
+                    const person1 = people[i];
+                    const person2 = people[j];
+                    const meetingCount = meetingTracker[person1][person2];
+                    meetings.push(meetingCount);
+                    
+                    if (meetingCount === 0) {
+                        neverMetCount++;
+                    }
+                    
+                    if (meetingCount > maxMeetings) {
+                        maxMeetings = meetingCount;
+                    }
+                }
+            }
+            
+            const averageMeetings = meetings.reduce((a, b) => a + b, 0) / meetings.length;
+            
+            return {
+                averageMeetings,
+                maxMeetings,
+                neverMet: neverMetCount
+            };
+        }
+        
+        function generateCombinations() {
+            const peopleInput = document.getElementById('people').value.trim();
+            const driversInput = document.getElementById('drivers').value.trim();
+            const sectionsInput = document.getElementById('sections').value;
+            const resultsDiv = document.getElementById('results');
+            
+            if (!peopleInput || !driversInput || !sectionsInput) {
+                resultsDiv.innerHTML = '<div class="error">모든 필드를 입력해주세요.</div>';
+                return;
+            }
+            
+            const people = peopleInput.split(',').map(name => name.trim()).filter(name => name);
+            const drivers = driversInput.split(',').map(name => name.trim()).filter(name => name);
+            const sections = parseInt(sectionsInput);
+            
+            if (people.length < 4) {
+                resultsDiv.innerHTML = '<div class="error">참여자는 최소 4명 이상이어야 합니다.</div>';
+                return;
+            }
+            
+            if (drivers.length === 0) {
+                resultsDiv.innerHTML = '<div class="error">차주를 최소 1명 이상 입력해주세요.</div>';
+                return;
+            }
+            
+            // 차주가 참여자 명단에 포함되어 있는지 확인
+            const invalidDrivers = drivers.filter(driver => !people.includes(driver));
+            if (invalidDrivers.length > 0) {
+                resultsDiv.innerHTML = `<div class="error">다음 차주들이 참여자 명단에 없습니다: ${invalidDrivers.join(', ')}</div>`;
+                return;
+            }
+            
+            const carsNeeded = Math.ceil(people.length / 4);
+            if (drivers.length < carsNeeded) {
+                resultsDiv.innerHTML = `<div class="error">차주가 부족합니다. ${people.length}명을 위해서는 최소 ${carsNeeded}명의 차주가 필요합니다.</div>`;
+                return;
+            }
+            
+            // 전체 조합 생성
+            const allCombinations = generateAllOptimalCombinations(people, drivers, carsNeeded, sections);
+            
+            let html = `
+                <div class="stats">
+                    <h3>📊 조합 정보</h3>
+                    <p>총 참여자: ${people.length}명 | 차주: ${drivers.length}명 | 필요한 차량: ${carsNeeded}대 | 구간: ${sections}개</p>
+                </div>
+            `;
+            
+            for (let section = 1; section <= sections; section++) {
+                const combination = allCombinations[section - 1];
+                
+                let sectionTitle = '';
+                if (section === 1) {
+                    if (sections === 1) {
+                        sectionTitle = '🏁 출발지 → 🏆 목적지';
+                    } else {
+                        sectionTitle = '🏁 출발지 → 🛑 1번째 쉼터';
+                    }
+                } else if (section === sections) {
+                    sectionTitle = `🛑 ${section-1}번째 쉼터 → 🏆 목적지`;
+                } else {
+                    sectionTitle = `🛑 ${section-1}번째 쉼터 → 🛑 ${section}번째 쉼터`;
+                }
+                
+                html += `
+                    <div class="rest-stop">
+                        <div class="rest-stop-header">
+                            ${sectionTitle}
+                        </div>
+                        <div class="cars-grid">
+                `;
+                
+                combination.forEach((car, index) => {
+                    html += `
+                        <div class="car-card">
+                            <div class="car-title">
+                                <span class="car-icon">🚗</span>
+                                ${car.driver}의 차
+                            </div>
+                            <div class="driver">🚗 운전: ${car.driver}</div>
+                            <div class="passengers">
+                                ${car.passengers && car.passengers.length > 0 ? 
+                                    car.passengers.map(passenger => `<span class="passenger">👤 ${passenger}</span>`).join('') : 
+                                    '<span class="passenger">👤 승객 없음</span>'
+                                }
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                html += `
+                        </div>
+                    </div>
+                `;
+            }
+            
+            // 조합 분석 결과 추가
+            const analysis = analyzeCombinations(allCombinations, people);
+            html += `
+                <div class="stats">
+                    <h3>🔍 조합 분석</h3>
+                    <p>평균 만남 횟수: ${analysis.averageMeetings.toFixed(1)}회</p>
+                    <p>최대 만남 횟수: ${analysis.maxMeetings}회</p>
+                    <p>한 번도 못 만난 사람들: ${analysis.neverMet}쌍</p>
+                </div>
+            `;
+            
+            resultsDiv.innerHTML = html;
+        }
+        
+        function shuffleArray(array) {
+            const shuffled = [...array];
+            for (let i = shuffled.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+            }
+            return shuffled;
+        }
+        
+        function generateRandomCombination(people, drivers, carsNeeded) {
+            const shuffledPeople = shuffleArray(people);
+            const shuffledDrivers = shuffleArray(drivers);
+            const selectedDrivers = shuffledDrivers.slice(0, carsNeeded);
+            
+            const combination = [];
+            
+            // 운전자가 아닌 사람들을 먼저 분류
+            const nonDrivers = shuffledPeople.filter(person => !selectedDrivers.includes(person));
+            
+            // 각 차량에 운전자 배정
+            for (let i = 0; i < carsNeeded; i++) {
+                const driver = selectedDrivers[i];
+                const car = {
+                    driver: driver,
+                    passengers: []
+                };
+                combination.push(car);
+            }
+            
+            // 운전자가 아닌 사람들을 순서대로 배정
+            let carIndex = 0;
+            for (let i = 0; i < nonDrivers.length; i++) {
+                // 현재 차량이 가득 찬 경우 다음 차량으로
+                if (combination[carIndex].passengers.length >= 3) {
+                    carIndex = (carIndex + 1) % carsNeeded;
+                    // 모든 차량이 가득 찬 경우 처음부터 다시
+                    if (carIndex === 0) {
+                        let foundSpace = false;
+                        for (let j = 0; j < carsNeeded; j++) {
+                            if (combination[j].passengers.length < 3) {
+                                carIndex = j;
+                                foundSpace = true;
+                                break;
+                            }
+                        }
+                        if (!foundSpace) break; // 모든 차량이 가득 참
+                    }
+                }
+                
+                combination[carIndex].passengers.push(nonDrivers[i]);
+            }
+            
+            return combination;
+        }
+        
+        function generateBasicCombination(people, drivers, carsNeeded) {
+            const shuffledDrivers = shuffleArray(drivers);
+            const selectedDrivers = shuffledDrivers.slice(0, carsNeeded);
+            const nonDrivers = people.filter(person => !selectedDrivers.includes(person));
+            
+            const combination = [];
+            
+            // 각 차량에 운전자 배정
+            for (let i = 0; i < carsNeeded; i++) {
+                combination.push({
+                    driver: selectedDrivers[i],
+                    passengers: []
+                });
+            }
+            
+            // 운전자가 아닌 사람들을 순서대로 배정
+            for (let i = 0; i < nonDrivers.length; i++) {
+                const carIndex = i % carsNeeded;
+                if (combination[carIndex].passengers.length < 3) {
+                    combination[carIndex].passengers.push(nonDrivers[i]);
+                }
+            }
+            
+            return combination;
+        }
+        
+        // 엔터 키로 생성 버튼 활성화
+        document.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter' && e.target.tagName !== 'TEXTAREA') {
+                generateCombinations();
+            }
+        });
+    </script>
+</body>
+</html>
