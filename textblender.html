@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>텍스트 블렌더</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif; padding: 20px; background-color: #f4f7f6; color: #333; }
+    .container { display: flex; flex-wrap: wrap; gap: 20px; }
+    .inputs, .result-area { flex: 1; min-width: 300px; display: flex; flex-direction: column; gap: 10px; background-color: #fff; padding: 15px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+    textarea {
+      height: 150px;
+      font-size: 14px;
+      resize: vertical;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      box-sizing: border-box;
+      white-space: pre-wrap;
+    }
+    textarea:focus {
+      border-color: #007bff;
+      outline: none;
+      box-shadow: 0 0 0 0.2rem rgba(0,123,255,.25);
+    }
+    .button-panel { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+    .button-panel button, .action-button {
+      padding: 8px 12px;
+      font-size: 14px;
+      cursor: pointer;
+      background-color: #007bff;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      transition: background-color 0.2s ease-in-out;
+    }
+    .button-panel button:hover, .action-button:hover {
+      background-color: #0056b3;
+    }
+    .combine-btn {
+      margin-top: 20px;
+      padding: 12px 24px;
+      font-size: 16px;
+      cursor: pointer;
+      background-color: #28a745;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      transition: background-color 0.2s ease-in-out;
+      width: 100%;
+      box-sizing: border-box;
+    }
+    .combine-btn:hover {
+      background-color: #1e7e34;
+    }
+    pre#debug {
+      background: #e9ecef;
+      padding: 10px;
+      margin-bottom: 10px;
+      font-size: 12px;
+      border-radius: 4px;
+      word-break: break-all;
+      white-space: pre-wrap;
+      max-height: 100px;
+      overflow-y: auto;
+    }
+    h2 { color: #0056b3; }
+    .data-source-area {
+        padding: 15px;
+        background-color: #e9ecef;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        border: 1px solid #ddd;
+    }
+    .url-input-container {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        margin-bottom: 10px;
+    }
+    .url-input-container label {
+        font-weight: bold;
+        white-space: nowrap;
+    }
+    .url-input-container input[type="text"] {
+        flex-grow: 1;
+        padding: 8px;
+        border-radius: 4px;
+        border: 1px solid #ccc;
+    }
+    .url-input-container button {
+        padding: 8px 15px;
+    }
+    .or-divider {
+        text-align: center;
+        margin: 15px 0;
+        font-weight: bold;
+        color: #777;
+    }
+    .local-file-container label {
+        font-weight: bold;
+    }
+    .sample-download-link {
+        font-size: 0.9em;
+        margin-top: 5px;
+        display: block;
+        color: #555;
+    }
+    .sample-download-link a {
+        color: #007bff;
+        text-decoration: none;
+        font-weight: bold;
+    }
+    .sample-download-link a:hover { text-decoration: underline; }
+
+    #saveCurrentContentBtn { background-color: #17a2b8; margin-bottom: 10px; }
+    #saveCurrentContentBtn:hover { background-color: #117a8b; }
+    .temp-save-item-container { display: inline-flex; align-items: center; background-color: #f0f0f0; border-radius: 4px; padding: 4px; }
+    .temp-save-item-container button { border: none; border-radius: 3px; padding: 5px 8px; font-size: 13px; cursor: pointer; transition: background-color 0.2s ease-in-out; color: white; }
+    .temp-save-load-btn { background-color: #6c757d; margin-right: 4px; }
+    .temp-save-load-btn:hover { background-color: #5a6268; }
+    .temp-save-delete-btn { background-color: #e74c3c; padding: 5px 7px; line-height: 1; }
+    .temp-save-delete-btn:hover { background-color: #c0392b; }
+    
+    footer { text-align: center; margin-top: 40px; padding-top: 20px; border-top: 1px solid #eee; font-size: 0.85em; color: #777; }
+    footer p { margin-bottom: 5px; }
+  </style>
+  <!-- SheetJS 라이브러리 CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+</head>
+<body>
+  <h2>텍스트 블렌더: 복잡한 프롬프트 딸깍 합치기</h2>
+
+  <pre id="debug">애플리케이션 초기화. 아래 방법으로 템플릿을 로드하세요.</pre>
+
+  <div class="data-source-area">
+    <div class="url-input-container">
+      <label for="googleSheetUrl">1. Google Sheets URL:</label>
+      <input type="text" id="googleSheetUrl" placeholder="웹에 게시된 HTML URL을 여기에 붙여넣으세요">
+      <button id="loadSheetBtn" class="action-button">로드</button>
+    </div>
+
+    <div class="or-divider">또는</div>
+
+    <div class="local-file-container">
+      <label for="excelFile">2. 로컬 템플릿 파일 선택 (Excel):</label>
+      <input type="file" id="excelFile" accept=".xlsx, .xls" style="margin-top: 5px;">
+    </div>
+    <span class="sample-download-link">
+      <em>템플릿 파일이 없으신가요? <a href="https://raw.githubusercontent.com/kupawang/my_web_service/main/sample.xlsx" download="sample_template.xlsx">샘플 엑셀 파일</a>을 다운로드하여 사용해보세요.</em>
+    </span>
+  </div>
+
+
+  <div class="container">
+    <div class="inputs">
+      <label for="input1">입력 1</label>
+      <textarea id="input1" placeholder="첫 번째 내용을 입력하세요."></textarea>
+      <label for="input2">입력 2</label>
+      <textarea id="input2" placeholder="두 번째 내용을 입력하세요."></textarea>
+      <label for="input3">입력 3</label>
+      <textarea id="input3" placeholder="세 번째 내용을 입력하세요."></textarea>
+    </div>
+
+    <div class="result-area">
+      <label for="result">결과</label>
+      <textarea id="result" readonly placeholder="합쳐진 결과가 여기에 표시됩니다."></textarea>
+      
+      <p><strong>템플릿 버튼:</strong> (데이터 로드 후 여기에 표시됩니다)</p>
+      <div class="button-panel" id="buttonPanel">
+      </div>
+
+      <div style="margin-top: 20px;">
+          <p><strong>임시 저장:</strong></p>
+          <button id="saveCurrentContentBtn" class="action-button">현재 내용 임시 저장</button>
+          <div class="button-panel" id="tempSaveArea">
+          </div>
+      </div>
+    </div>
+  </div>
+
+  <button class="combine-btn" onclick="combineAndCopy()">선택된 내용으로 합치고 복사하기</button>
+
+  <footer>
+    <p>
+      © 2025 kupawang <img src="pixelkupa.png" width="24" height="24">
+      <br>
+      Instagram: @kupawang | Email: kupawang@gmail.com
+      <br>
+      Since 2025.06.22
+    </p>
+    <p style="font-size: 0.9em; margin-top: 5px;">
+      <em>버그나 제안사항이 있으시면 kupawang@gmail.com 으로 알려주세요.</em>
+    </p>
+  </footer>
+
+  <script>
+    // --- 1. Google Sheets HTML 파싱 함수 ---
+    function parsePublishedHTMLTable(htmlText) {
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(htmlText, "text/html");
+      const table = doc.querySelector("table.waffle");
+      if (!table) { console.error("게시된 HTML에서 '.waffle' 클래스를 가진 테이블을 찾을 수 없습니다."); return []; }
+      const jsonData = [];
+      let headers = [];
+      const tbody = table.querySelector("tbody");
+      if (!tbody) { console.error("테이블에서 <tbody>를 찾을 수 없습니다."); return []; }
+      const rowsInTbody = Array.from(tbody.querySelectorAll("tr"));
+      if (rowsInTbody.length < 2) { console.error("헤더와 데이터 행이 모두 필요합니다."); return []; }
+      
+      const headerCells = Array.from(rowsInTbody[0].querySelectorAll("td"));
+      headers = headerCells.map(cell => (cell.textContent || '').trim());
+      if (headers.length === 0) { console.error("테이블 헤더를 파싱할 수 없습니다."); return []; }
+
+      for (let i = 1; i < rowsInTbody.length; i++) {
+        const dataRow = rowsInTbody[i];
+        const dataCells = Array.from(dataRow.querySelectorAll("td"));
+        const entry = {};
+        let isEmptyRow = true;
+        for (let j = 0; j < headers.length; j++) {
+          let cellHTML = dataCells[j] ? dataCells[j].innerHTML || '' : '';
+          let cellTextWithNewlines = cellHTML.replace(/<br\s*\/?>/gi, '\n');
+          const tempDiv = document.createElement('div');
+          tempDiv.innerHTML = cellTextWithNewlines;
+          let finalCellValue = (tempDiv.textContent || tempDiv.innerText || '').trim();
+          entry[headers[j]] = finalCellValue;
+          if (finalCellValue !== '') isEmptyRow = false;
+        }
+        if (!isEmptyRow) jsonData.push(entry);
+      }
+      return jsonData;
+    }
+
+    // --- 2. Google Sheets 데이터 가져오기 함수 ---
+    async function fetchSheetData(sheetUrl, debugElement, buttonPanel) {
+      if (!sheetUrl) {
+          debugElement.textContent = "로드할 유효한 URL이 없습니다.";
+          return; 
+      }
+
+      const proxyUrl = 'https://api.allorigins.win/raw?url=';
+      const requestUrl = proxyUrl + encodeURIComponent(sheetUrl);
+
+      debugElement.textContent = "Google Sheets에서 데이터 로딩 중 (CORS 프록시 사용)...";
+      try {
+        const response = await fetch(requestUrl);
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status} - 프록시 서버 또는 구글 시트 응답에 문제가 있습니다.`);
+        }
+        const htmlText = await response.text();
+        const jsonData = parsePublishedHTMLTable(htmlText);
+        
+        if(jsonData.length > 0){
+            createButtons(jsonData, "Google Sheets", debugElement, buttonPanel);
+        } else {
+            throw new Error("HTML을 가져왔으나, 파싱할 데이터를 찾지 못했습니다. 시트 내용을 확인해주세요.");
+        }
+        
+      } catch (err) {
+        console.error("Google Sheets 데이터 fetch 또는 파싱 중 오류:", err);
+        debugElement.textContent = "Google Sheets 로딩 오류: " + err.message + ". URL과 시트 내용을 확인해주세요.";
+        buttonPanel.innerHTML = '<p style="color: red;">Google Sheets 템플릿 로딩 실패. URL이 올바른지, 시트가 '웹에 게시' 상태인지 확인해주세요.</p>';
+      }
+    }
+
+    // --- 3. 로컬 엑셀 파일 처리 함수 ---
+    function handleExcelFile(event, debugElement, buttonPanel) {
+        const file = event.target.files[0];
+        if (!file) { return; }
+
+        debugElement.textContent = `'${file.name}' 파일 로딩 중...`;
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            try {
+                const data = e.target.result;
+                const workbook = XLSX.read(data, {type: 'array'});
+                const firstSheetName = workbook.SheetNames[0];
+                if (!firstSheetName) throw new Error("엑셀 파일에 시트가 없습니다.");
+                const worksheet = workbook.Sheets[firstSheetName];
+                const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '' });
+                if (jsonData.length < 2) throw new Error("헤더와 데이터 행이 필요합니다. (최소 2줄 이상)");
+                const headers = jsonData[0];
+                const dataRows = jsonData.slice(1);
+                const formattedJsonData = dataRows.map(row => {
+                    const entry = {};
+                    headers.forEach((header, index) => { entry[header] = row[index] || ''; });
+                    return entry;
+                });
+                createButtons(formattedJsonData, `로컬 파일 (${file.name})`, debugElement, buttonPanel);
+            } catch (err) {
+                console.error("로컬 엑셀 파일 처리 중 오류:", err);
+                debugElement.textContent = "로컬 엑셀 파일 처리 중 오류 발생: " + err.message;
+                buttonPanel.innerHTML = '<p style="color: red;">로컬 템플릿 파일을 불러오는데 실패했습니다. 파일 형식을 확인해주세요.</p>';
+            }
+        };
+        reader.readAsArrayBuffer(file);
+    }
+
+    // --- 4. 템플릿 버튼 생성 함수 ---
+    function createButtons(data, sourceType, debugElement, buttonPanel) {
+      buttonPanel.innerHTML = ''; 
+      if (!data || data.length === 0) {
+        buttonPanel.innerHTML = `<p>표시할 템플릿 데이터가 없습니다. (${sourceType} 확인)</p>`;
+        debugElement.textContent = `${sourceType}에서 템플릿 데이터를 찾을 수 없습니다.`;
+        return;
+      }
+
+      data.forEach(row => {
+        const titleKey = Object.keys(row).find(k => k.trim().toLowerCase() === '제목' || k.trim().toLowerCase() === 'title');
+        const input1Key = Object.keys(row).find(k => k.trim().toLowerCase() === '입력1' || k.trim().toLowerCase() === 'input1');
+        const input2Key = Object.keys(row).find(k => k.trim().toLowerCase() === '입력2' || k.trim().toLowerCase() === 'input2');
+        const input3Key = Object.keys(row).find(k => k.trim().toLowerCase() === '입력3' || k.trim().toLowerCase() === 'input3');
+        
+        const buttonText = row[titleKey] || "";
+        if (!buttonText.trim()) return;
+
+        const btn = document.createElement("button");
+        btn.textContent = buttonText;
+        btn.onclick = () => {
+          fillInputs( row[input1Key] || '', row[input2Key] || '', row[input3Key] || '' );
+        };
+        buttonPanel.appendChild(btn);
+      });
+      debugElement.textContent = `${sourceType}에서 ${buttonPanel.childElementCount}개의 템플릿 버튼을 성공적으로 로드했습니다.`;
+    }
+
+    // --- 나머지 함수들은 기존과 동일 ---
+    function fillInputs(val1, val2, val3) {
+      document.getElementById("input1").value = val1;
+      document.getElementById("input2").value = val2;
+      document.getElementById("input3").value = val3;
+    }
+    let tempSavedItems = [], tempSaveCounter = 1, nextItemId = 0;
+    function saveCurrentInputs() {
+      const val1 = document.getElementById("input1").value, val2 = document.getElementById("input2").value, val3 = document.getElementById("input3").value;
+      if (!val1.trim() && !val2.trim() && !val3.trim()) { alert("임시 저장할 내용이 없습니다."); return; }
+      const newItem = { id: nextItemId++, name: `임시${tempSaveCounter++}`, data: { input1: val1, input2: val2, input3: val3 } };
+      tempSavedItems.push(newItem);
+      renderTempSavedItems();
+    }
+    function renderTempSavedItems() {
+      const tempSaveArea = document.getElementById("tempSaveArea");
+      tempSaveArea.innerHTML = '';
+      tempSavedItems.forEach(item => {
+        const itemContainer = document.createElement('div');
+        itemContainer.classList.add('temp-save-item-container');
+        const loadBtn = document.createElement('button');
+        loadBtn.classList.add('temp-save-load-btn');
+        loadBtn.textContent = item.name;
+        loadBtn.onclick = () => loadSavedItem(item.id);
+        const deleteBtn = document.createElement('button');
+        deleteBtn.classList.add('temp-save-delete-btn');
+        deleteBtn.textContent = 'X';
+        deleteBtn.onclick = () => deleteSavedItem(item.id);
+        itemContainer.appendChild(loadBtn); itemContainer.appendChild(deleteBtn); tempSaveArea.appendChild(itemContainer);
+      });
+    }
+    function loadSavedItem(itemId) {
+      const itemToLoad = tempSavedItems.find(item => item.id === itemId);
+      if (itemToLoad) { fillInputs(itemToLoad.data.input1, itemToLoad.data.input2, itemToLoad.data.input3); }
+    }
+    function deleteSavedItem(itemId) {
+      tempSavedItems = tempSavedItems.filter(item => item.id !== itemId);
+      renderTempSavedItems();
+    }
+    function combineAndCopy() {
+      const resultText = [document.getElementById("input1").value, document.getElementById("input2").value, document.getElementById("input3").value].filter(Boolean).join('\n\n');
+      const resultArea = document.getElementById("result");
+      resultArea.value = resultText;
+      if (resultText.trim() === "") { alert("복사할 내용이 없습니다."); return; }
+      if (navigator.clipboard) {
+          navigator.clipboard.writeText(resultText).then(() => alert("결과가 클립보드에 복사되었습니다!")).catch(() => legacyCopy(resultArea));
+      } else { legacyCopy(resultArea); }
+    }
+    function legacyCopy(textareaElement) {
+      textareaElement.select(); textareaElement.setSelectionRange(0, 99999);
+      try { if(document.execCommand("copy")) { alert("결과가 클립보드에 복사되었습니다!"); } else { throw new Error(); }
+      } catch (err) { alert("클립보드 복사에 실패했습니다."); }
+    }
+
+    // --- 8. 초기화 및 이벤트 리스너 설정 ([핵심 수정]) ---
+    document.addEventListener('DOMContentLoaded', () => {
+      // [수정] HTML 문서가 모두 로드된 후에 요소를 찾습니다.
+      const debugElement = document.getElementById("debug");
+      const buttonPanel = document.getElementById("buttonPanel");
+      const googleSheetUrlInput = document.getElementById('googleSheetUrl');
+      const loadSheetBtn = document.getElementById('loadSheetBtn');
+      const excelFileInput = document.getElementById('excelFile');
+      const saveCurrentContentBtn = document.getElementById("saveCurrentContentBtn");
+
+      // URL 로드 버튼 클릭 이벤트
+      if (loadSheetBtn) {
+        loadSheetBtn.addEventListener('click', () => {
+          const url = googleSheetUrlInput.value.trim();
+          if (!url) {
+            alert('Google Sheets 웹 게시 URL을 입력해주세요.');
+            return;
+          }
+          // [수정] 함수에 필요한 요소들을 인자로 전달
+          fetchSheetData(url, debugElement, buttonPanel);
+        });
+      }
+      
+      // 로컬 파일 선택 이벤트
+      if (excelFileInput) {
+        excelFileInput.addEventListener('change', (event) => {
+          // [수정] 함수에 필요한 요소들을 인자로 전달
+          handleExcelFile(event, debugElement, buttonPanel);
+        });
+      }
+
+      // 임시 저장 버튼 이벤트
+      if (saveCurrentContentBtn) {
+        saveCurrentContentBtn.addEventListener('click', saveCurrentInputs);
+      }
+    });
+  </script>
+</body>
+</html>
