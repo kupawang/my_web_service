@@ -1,0 +1,14 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# 앱 실행 시 생성되는 임시 작업 폴더
+work/
+
+# API 키 등 민감 정보
+.env
+
+# OS
+.DS_Store
