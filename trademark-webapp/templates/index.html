@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>상표 OA 분석기</title>
+<style>
+  :root {
+    --ink: #1F4E79;
+    --ink-dark: #16334f;
+    --paper: #FAF8F3;
+    --paper-line: #E4DFD3;
+    --text: #2A2A28;
+    --muted: #756F63;
+    --accent: #B8542A;
+    --ok: #2F6F4F;
+    --err: #B03A2E;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--text);
+    font-family: "Pretendard", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+    min-height: 100vh;
+  }
+  .masthead {
+    background: var(--ink-dark);
+    color: #EDEFF2;
+    padding: 28px 32px 24px;
+    border-bottom: 4px solid var(--accent);
+  }
+  .masthead .eyebrow {
+    font-size: 12px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: #9FB4CC;
+    margin-bottom: 6px;
+  }
+  .masthead h1 {
+    margin: 0;
+    font-size: 26px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+  }
+  .masthead p {
+    margin: 8px 0 0;
+    color: #C7D2E0;
+    font-size: 14px;
+    max-width: 640px;
+    line-height: 1.5;
+  }
+  main {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 36px 24px 80px;
+  }
+  .card {
+    background: #fff;
+    border: 1px solid var(--paper-line);
+    border-radius: 4px;
+    padding: 28px;
+    margin-bottom: 20px;
+    box-shadow: 0 1px 2px rgba(20, 20, 15, 0.04);
+  }
+  .card h2 {
+    font-size: 15px;
+    margin: 0 0 4px;
+    color: var(--ink);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .step-num {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: var(--ink);
+    color: #fff;
+    font-size: 12px;
+    font-weight: 700;
+  }
+  .card .hint {
+    font-size: 13px;
+    color: var(--muted);
+    margin: 4px 0 18px;
+    line-height: 1.6;
+  }
+  label {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 6px;
+  }
+  input[type="password"], input[type="text"], input[type="number"] {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid var(--paper-line);
+    border-radius: 3px;
+    font-size: 14px;
+    font-family: inherit;
+    background: var(--paper);
+  }
+  input:focus { outline: 2px solid var(--ink); outline-offset: 1px; }
+  .field { margin-bottom: 18px; }
+  .dropzone {
+    border: 1.5px dashed var(--paper-line);
+    border-radius: 4px;
+    padding: 26px;
+    text-align: center;
+    cursor: pointer;
+    background: var(--paper);
+    transition: border-color .15s ease;
+  }
+  .dropzone.drag { border-color: var(--ink); background: #F0F4F8; }
+  .dropzone p { margin: 0; font-size: 13px; color: var(--muted); }
+  .dropzone .fname { font-weight: 700; color: var(--ink); font-size: 14px; margin-top: 4px; }
+  input[type="file"] { display: none; }
+  .row { display: flex; gap: 16px; align-items: flex-end; }
+  .row .field { flex: 1; margin-bottom: 0; }
+  .btn {
+    display: inline-block;
+    background: var(--ink);
+    color: #fff;
+    border: none;
+    padding: 13px 26px;
+    font-size: 14px;
+    font-weight: 700;
+    border-radius: 3px;
+    cursor: pointer;
+    letter-spacing: 0.01em;
+  }
+  .btn:hover { background: var(--ink-dark); }
+  .btn:disabled { background: #B7BEC6; cursor: not-allowed; }
+  .btn-block { width: 100%; margin-top: 6px; }
+  .progress-wrap { display: none; }
+  .progress-wrap.show { display: block; }
+  .progress-bar {
+    height: 8px;
+    background: var(--paper-line);
+    border-radius: 4px;
+    overflow: hidden;
+    margin: 14px 0 8px;
+  }
+  .progress-fill {
+    height: 100%;
+    width: 0%;
+    background: var(--ink);
+    transition: width .25s ease;
+  }
+  .progress-msg { font-size: 13px; color: var(--muted); }
+  .result-box {
+    display: none;
+    border: 1px solid var(--ok);
+    background: #F1F8F4;
+    border-radius: 4px;
+    padding: 18px;
+    margin-top: 16px;
+  }
+  .result-box.show { display: block; }
+  .result-box a.btn { background: var(--ok); }
+  .result-box a.btn:hover { background: #24573f; }
+  .error-box {
+    display: none;
+    border: 1px solid var(--err);
+    background: #FBEDEA;
+    color: var(--err);
+    border-radius: 4px;
+    padding: 14px 16px;
+    margin-top: 14px;
+    font-size: 13px;
+  }
+  .error-box.show { display: block; }
+  footer {
+    text-align: center;
+    font-size: 12px;
+    color: var(--muted);
+    padding: 24px;
+  }
+  a.key-link { color: var(--ink); }
+</style>
+</head>
+<body>
+
+<div class="masthead">
+  <div class="eyebrow">Trademark OA Analyzer</div>
+  <h1>상표 OA 분석 엑셀 생성기</h1>
+  <p>특허청 상표 의견제출통지서(OA) ZIP을 업로드하면, 출원상표·선행상표 이미지와 34조1항7호 거절이유 요약을 정리한 엑셀을 자동으로 만들어 드립니다. 모든 처리는 이 컴퓨터에서만 진행되며, 파일은 서버에 저장되지 않습니다.</p>
+</div>
+
+<main>
+
+  <div class="card">
+    <h2><span class="step-num">1</span> Anthropic API 키</h2>
+    <p class="hint">상표 이미지의 한국어/영어 호칭 분석에 사용됩니다. 키가 없으시면
+      <a class="key-link" href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener">console.anthropic.com</a>에서 발급받으세요.
+      브라우저에만 저장되며 서버에 남지 않습니다.</p>
+    <div class="field">
+      <label for="apiKey">API 키</label>
+      <input type="password" id="apiKey" placeholder="sk-ant-...">
+    </div>
+  </div>
+
+  <div class="card">
+    <h2><span class="step-num">2</span> OA ZIP 업로드</h2>
+    <p class="hint">특허청에서 다운로드한 OA PDF들이 담긴 ZIP 파일을 선택하세요.</p>
+    <div class="dropzone" id="dropzone">
+      <p>클릭하거나 파일을 이곳에 끌어다 놓으세요</p>
+      <div class="fname" id="fname"></div>
+      <input type="file" id="zipFile" accept=".zip">
+    </div>
+
+    <div class="row" style="margin-top:18px;">
+      <div class="field">
+        <label for="count">처리 건수 (0 = 전체)</label>
+        <input type="number" id="count" value="0" min="0">
+      </div>
+    </div>
+
+    <button class="btn btn-block" id="runBtn" style="margin-top:20px;">엑셀 생성 시작</button>
+
+    <div class="progress-wrap" id="progressWrap">
+      <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+      <div class="progress-msg" id="progressMsg">대기 중...</div>
+    </div>
+
+    <div class="result-box" id="resultBox">
+      <strong>엑셀 생성이 완료되었습니다.</strong>
+      <div style="margin-top:12px;">
+        <a class="btn" id="downloadLink" href="#">oa_analysis.xlsx 다운로드</a>
+      </div>
+    </div>
+
+    <div class="error-box" id="errorBox"></div>
+  </div>
+
+</main>
+
+<footer>로컬 실행 · 파일과 API 키는 이 기기 밖으로 전송되지 않습니다 (Anthropic API 호출 제외)</footer>
+
+<script>
+const dropzone = document.getElementById('dropzone');
+const zipFile = document.getElementById('zipFile');
+const fnameEl = document.getElementById('fname');
+const runBtn = document.getElementById('runBtn');
+const progressWrap = document.getElementById('progressWrap');
+const progressFill = document.getElementById('progressFill');
+const progressMsg = document.getElementById('progressMsg');
+const resultBox = document.getElementById('resultBox');
+const errorBox = document.getElementById('errorBox');
+const downloadLink = document.getElementById('downloadLink');
+
+dropzone.addEventListener('click', () => zipFile.click());
+dropzone.addEventListener('dragover', (e) => { e.preventDefault(); dropzone.classList.add('drag'); });
+dropzone.addEventListener('dragleave', () => dropzone.classList.remove('drag'));
+dropzone.addEventListener('drop', (e) => {
+  e.preventDefault();
+  dropzone.classList.remove('drag');
+  if (e.dataTransfer.files.length) {
+    zipFile.files = e.dataTransfer.files;
+    updateFname();
+  }
+});
+zipFile.addEventListener('change', updateFname);
+
+function updateFname() {
+  fnameEl.textContent = zipFile.files.length ? zipFile.files[0].name : '';
+}
+
+let pollTimer = null;
+
+runBtn.addEventListener('click', async () => {
+  errorBox.classList.remove('show');
+  resultBox.classList.remove('show');
+
+  const apiKey = document.getElementById('apiKey').value.trim();
+  const count = document.getElementById('count').value || '0';
+
+  if (!apiKey) { showError('Anthropic API 키를 입력해주세요.'); return; }
+  if (!zipFile.files.length) { showError('ZIP 파일을 선택해주세요.'); return; }
+
+  const formData = new FormData();
+  formData.append('api_key', apiKey);
+  formData.append('count', count);
+  formData.append('zip_file', zipFile.files[0]);
+
+  runBtn.disabled = true;
+  progressWrap.classList.add('show');
+  progressFill.style.width = '2%';
+  progressMsg.textContent = '업로드 중...';
+
+  try {
+    const res = await fetch('/analyze', { method: 'POST', body: formData });
+    const data = await res.json();
+    if (!res.ok) { showError(data.error || '요청 처리 중 오류가 발생했습니다.'); resetBtn(); return; }
+    pollStatus(data.job_id);
+  } catch (err) {
+    showError('서버에 연결할 수 없습니다: ' + err.message);
+    resetBtn();
+  }
+});
+
+function pollStatus(jobId) {
+  pollTimer = setInterval(async () => {
+    try {
+      const res = await fetch('/status/' + jobId);
+      const data = await res.json();
+      if (!res.ok) { clearInterval(pollTimer); showError(data.error); resetBtn(); return; }
+
+      const pct = data.total > 0 ? Math.round((data.done / data.total) * 100) : 5;
+      progressFill.style.width = pct + '%';
+      progressMsg.textContent = data.total > 0
+        ? `${data.message} (${data.done}/${data.total})`
+        : data.message;
+
+      if (data.status === 'done') {
+        clearInterval(pollTimer);
+        progressFill.style.width = '100%';
+        downloadLink.href = '/download/' + jobId;
+        resultBox.classList.add('show');
+        resetBtn();
+      } else if (data.status === 'error') {
+        clearInterval(pollTimer);
+        showError(data.message);
+        resetBtn();
+      }
+    } catch (err) {
+      clearInterval(pollTimer);
+      showError('상태 확인 중 오류: ' + err.message);
+      resetBtn();
+    }
+  }, 1200);
+}
+
+function showError(msg) {
+  errorBox.textContent = msg;
+  errorBox.classList.add('show');
+}
+
+function resetBtn() {
+  runBtn.disabled = false;
+}
+</script>
+
+</body>
+</html>
